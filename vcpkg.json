@@ -1,0 +1,25 @@
+{
+    "dependencies": [
+      "lz4",
+      "fmt",
+      "cryptopp",
+      "boost-algorithm",
+      "boost-dll",
+      "boost-asio",
+      "boost-json",
+      "boost-system",
+      "boost-container",
+      "boost-filesystem",
+      "libplist",
+      "boost-process",
+      "curl",
+      "openssl",
+      "ffmpeg",
+      "glfw3",
+      "glew",
+      "opengl",
+      "cuda",
+      "ffnvcodec",
+      "efsw"
+    ]
+  }
