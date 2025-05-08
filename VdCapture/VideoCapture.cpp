@@ -255,7 +255,7 @@ auto VideoCapture::stop_capture() -> void
 
 }
 
-auto VideoCapture::start_capture(std::function<void(AVFrame*)> callback) -> std::tuple<bool, std::optional<std::string>>
+auto VideoCapture::start_capture_async(std::function<void(AVFrame*)> callback) -> std::tuple<bool, std::optional<std::string>>
 {
 	if (!format_context_ || !codec_context_)
 	{
@@ -269,13 +269,18 @@ auto VideoCapture::start_capture(std::function<void(AVFrame*)> callback) -> std:
 
 	is_capturing_ = true;
 
-	auto [started, start_error] = thread_pool_->push(std::make_shared<Job>(JobPriorities::High, [&, callback]() { capture_loop(callback); }));
+	auto [started, start_error] = thread_pool_->push(std::make_shared<Job>(JobPriorities::High, 
+		[&, callback]() -> std::tuple<bool, std::optional<std::string>> 
+		{ 
+			capture_loop(callback);
+			return { true, std::nullopt };
+		}));
+
 	if (!started)
 	{
 		is_capturing_ = false;
 		return { false, start_error };
 	}
-
 	return { true, std::nullopt };
 }
 
