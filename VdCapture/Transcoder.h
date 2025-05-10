@@ -48,8 +48,8 @@ namespace VideoToolKit
 	class Transcoder
 	{
 	public:
-		Transcoder() = default;
-		~Transcoder() = default;
+		Transcoder();
+		~Transcoder();
 
 		auto add_profile(int width, int height, int bit_rate, NvEnPreset preset) -> void;
 		auto initialize(int frame_rate, int frame_rate_denominator) -> std::tuple<bool, std::optional<std::string>>;

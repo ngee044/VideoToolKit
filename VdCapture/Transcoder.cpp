@@ -17,18 +17,18 @@ static GUID preset_to_guid(NvEnPreset preset)
 	switch (preset)
 	{
 	case NvEnPreset::LowLatencyDefault:
-		return NV_ENC_PRESET_LOW_LATENCY_DEFAULT_GUID;
+		return NV_ENC_PRESET_P1_GUID;
 	case NvEnPreset::LowLatencyHQ:
-		return NV_ENC_PRESET_LOW_LATENCY_HQ_GUID;
+		return NV_ENC_PRESET_P2_GUID;
 	case NvEnPreset::LowLatencyHP:
-		return NV_ENC_PRESET_LOW_LATENCY_HP_GUID;
+		return NV_ENC_PRESET_P3_GUID;
 	case NvEnPreset::HighQuality:
-		return NV_ENC_PRESET_HQ_GUID;
+		return NV_ENC_PRESET_P4_GUID;
 	case NvEnPreset::HighPerformance:
-		return NV_ENC_PRESET_HP_GUID;
+		return NV_ENC_PRESET_P5_GUID;
 	default:
 		assert(false && "Unknown preset type");
-		return NV_ENC_PRESET_LOW_LATENCY_DEFAULT_GUID;
+		return NV_ENC_PRESET_P6_GUID;
 	}
 }
 
@@ -100,7 +100,8 @@ auto Transcoder::encode(const GpuFrame& frame) -> std::vector<EncodedPacket>
 	std::vector<EncodedPacket> output_packets;
 	if (!cuda_initialized_)
 	{
-		return { false, "CUDA not initialized" };
+		// TODO
+		// write error message to log
 	}
 
 	for (auto i = 0; i < encoders_.size(); ++i)
@@ -121,7 +122,8 @@ auto Transcoder::encode(const GpuFrame& frame) -> std::vector<EncodedPacket>
 		auto [success, error] = encode_frame(encoder_instance, scaled_frame, local_packets);
 		if (!success)
 		{
-			return { false, error };
+			// TODO
+			// write error message to log
 		}
 
 		for (auto& packet : local_packets)
@@ -165,18 +167,8 @@ auto Transcoder::create_encoder_session(const TranscodeProfile& profile) -> std:
 
 auto Transcoder::encode_frame(EncoderInstance& encoder_instance, const GpuFrame& frame, std::vector<EncodedPacket>& packet) -> std::tuple<bool, std::optional<std::string>>
 {
-	// TODO
-
-	EncodedPacket packet;
-	packet.data = new std::uint8_t[10000]; // mock
-	packet.size = 1234;
-	packet.key_frame = true; // mock
-	packet.pts = 0; // mock
-	packet.dts = 0; // mock
-
-	packet.push_back(packet);
-
-	return { true, std::nullopt };
+	// 
+	return std::tuple<bool, std::optional<std::string>>();
 }
 
 }
