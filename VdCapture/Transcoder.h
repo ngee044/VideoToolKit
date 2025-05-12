@@ -1,5 +1,17 @@
 #pragma once
 
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/hwcontext_cuda.h>
+#include <libavutil/opt.h>
+#include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
+}
+
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 #include <vector>
 #include <tuple>
 #include <string>
@@ -8,71 +20,51 @@
 
 namespace VideoToolKit
 {
-	enum class NvEnPreset
-	{
-		LowLatencyDefault = 0,
-		LowLatencyHQ = 1,
-		LowLatencyHP = 2,
-		HighQuality = 3,
-		HighPerformance = 4,
-	};
-
-	struct TranscodeProfile
-	{
-		int width;
-		int height;
-		int bit_rate;
-		NvEnPreset preset;
-	};
-
-	struct GpuFrame
-	{
-		int width;
-		int height;
-		int bit_rate;
-		NvEnPreset preset;
-		std::string data; // Placeholder for actual GPU frame data
-	};
-
-	struct EncodedPacket 
-	{
-		int profile_index;
-		std::uint8_t* data;
-		std::size_t size;
-		bool key_frame;
-		int64_t pts;
-		int64_t dts;
-	};
-
-
 	class Transcoder
 	{
 	public:
+		struct OutputConfig
+		{
+			std::string url;
+			int width;
+			int height;
+			int bit_rate;
+			std::string format;
+		};
+
 		Transcoder();
 		~Transcoder();
 
-		auto add_profile(int width, int height, int bit_rate, NvEnPreset preset) -> void;
-		auto initialize(int frame_rate, int frame_rate_denominator) -> std::tuple<bool, std::optional<std::string>>;
-		auto encode(const GpuFrame& frame) -> std::vector<EncodedPacket>;
-		
-		auto flush() -> std::tuple<bool, std::optional<std::string>>;
+		auto initialize(const std::vector<OutputConfig>& output_configs, int frame_rate = 30) -> std::tuple<bool, std::optional<std::string>>;
+		auto process_frame(const std::uint8_t* gpu_y, const std::uint8_t* gpu_uv, int stride_y, int stride_uv) -> std::tuple<bool, std::optional<std::string>>;
 
+		auto finalize() -> void;
+
+		
 	protected:
-		struct EncoderInstance 
+		struct StreamContext
 		{
-			TranscodeProfile profile;
-			void* encoderSession;
+			OutputConfig config;
+			AVFormatContext* format_context_ = nullptr;
+			AVCodecContext* codec_context_ = nullptr;
+			AVStream* stream_ = nullptr;
+			
+			SwsContext* sws_context_ = nullptr;
+			AVFrame* tmp_frame_ = nullptr;
 		};
 
-		auto init_cuda() -> std::tuple<bool, std::optional<std::string>>;
-		bool resize_nv_12gpu(const GpuFrame& src, GpuFrame& dst);
-		auto create_encoder_session(const TranscodeProfile& profile) -> std::tuple<bool, std::optional<std::string>>;
-		auto encode_frame(EncoderInstance& encoder_instance, const GpuFrame& frame, std::vector<EncodedPacket>& packet) -> std::tuple<bool, std::optional<std::string>>;
+		auto init_cuda_device() -> std::tuple<bool, std::optional<std::string>>;
+		auto setup_encoder(StreamContext& stream_context, int fps) -> std::tuple<bool, std::optional<std::string>>;
+		auto setup_muxer(StreamContext& stream_context) -> std::tuple<bool, std::optional<std::string>>;
+		auto send_frame(StreamContext& stream_context, AVFrame* frame) -> std::tuple<bool, std::optional<std::string>>;
+
+		auto scale_frame_cpu(const std::uint8_t* gpu_y, const std::uint8_t* gpu_uv, int stride_y, int stride_uv, StreamContext& stream_context) -> std::tuple<bool, std::optional<std::string>>;
 
 	private:
-		std::vector<EncoderInstance> encoders_;
-		bool cuda_initialized_;
-		void* cuda_context_;
+		std::vector<StreamContext> stream_contexts_;
 
+		AVBufferRef* hw_device_context_;;
+		std::int64_t pts_;
+		int fps_;
 	};
 }
